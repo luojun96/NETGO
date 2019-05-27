@@ -6,6 +6,7 @@ var compileConfig = Argument("Configuration", "Release");
 var slnFile = "./NETGO.sln";
 
 var artifactsDir = Directory("artifacts");
+var publishDir = Directory("publish");
 
 // unit testing
 var artifactsForUnitTestsDir = artifactsDir + Directory("UnitTests");
@@ -24,7 +25,7 @@ var packagesDir = artifactsDir + Directory("Packages");
 var releaseNotesFile = packagesDir + File("releasenotes.md");
 var artifactsFile = packagesDir + File("artifacts.txt");
 
-/// unstable release/
+// unstable release/
 var nugetFeedUnstableKey = EnvironmentVariable("nuget-apikey-unstable");
 var nugetFeedUnstableUploadUrl = "https://www.nuget.org/api/v2/package";
 var nugetFeedUnstableSymbolsUploadUrl = "https://www.nuget.org/api/v2/package";
@@ -44,14 +45,15 @@ var nugetFeedUnstableBranchFilter = "^(develop)$|^(PullRequest/)";
 
 var target = Argument("target", "Default");
 
-Task ("Default")
+Task("Default")
     .IsDependentOn ("Build");
 
-Task ("Build")
+Task("Build")
     .IsDependentOn ("RunTests")
-    .IsDependentOn ("CreatePackages");
+    .IsDependentOn ("CreatePackages")
+    .IsDependentOn("Publish");
 
-Task ("RunTests")
+Task("RunTests")
     .IsDependentOn ("RunUnitTests")
     .IsDependentOn ("RunAcceptanceTests")
     .IsDependentOn ("RunIntegrationTests");
@@ -108,7 +110,7 @@ Task("CreatePackages")
 		}
     });
 
- Task ("Compile")
+Task("Compile")
     .IsDependentOn ("Clean")
     .IsDependentOn ("Version")
     .Does (() => {
@@ -120,7 +122,21 @@ Task("CreatePackages")
         DotNetCoreBuild(slnFile, settings);
     });
 
- Task ("Clean")
+Task("Publish")
+    .IsDependentOn("Compile")
+    .Does(() =>
+{
+    var settings = new DotNetCorePublishSettings
+    {
+        Configuration = compileConfig,
+        OutputDirectory = publishDir,
+        ArgumentCustomization = args => args.Append("--no-build")
+    };
+
+    DotNetCorePublish(slnFile, settings);
+});
+
+Task("Clean")
     .Does (() => {
         if (DirectoryExists (artifactsDir)) {
             DeleteDirectory (artifactsDir, new DeleteDirectorySettings {
@@ -129,9 +145,18 @@ Task("CreatePackages")
             });
         }
         CreateDirectory (artifactsDir);
+
+        if (DirectoryExists (publishDir)) {
+            DeleteDirectory (publishDir, new DeleteDirectorySettings {
+                Recursive = true,
+                Force = true
+            });
+        }
+        CreateDirectory (publishDir);
+
     });
 
-Task ("Version")
+Task("Version")
     .Does (() => {
         versioning = GetNuGetVersionForCommit();
         var ungetVersion = versioning.NuGetVersion;
