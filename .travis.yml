@@ -13,3 +13,5 @@ before_install:
 
 script:
   - ./build.sh
+  - cp ./dockerfiles/netgo.web/Dockerfile ./publish/
+  - cd ./publish && docker build -t netgo:1.0 . 
