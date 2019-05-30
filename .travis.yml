@@ -14,6 +14,5 @@ before_install:
 script:
   - ./build.sh
   - cp ./dockerfiles/netgo.web/Dockerfile ./publish/
-  - cd ./publish && docker build -t ${DOCKER_REPOSITORY}:${TRAVIS_COMMIT} .
-  - echo ${DOCKER_HUB_PWD} | docker login -u ${DOCKER_HUB_USER} --password-stdin  
-  - docker push ${DOCKER_REPOSITORY}:${TRAVIS_COMMIT} 
+  - cd ./publish && docker build -t ${DOCKER_HUB_USER}/${DOCKER_REPOSITORY}:${TRAVIS_COMMIT} .
+  - echo ${DOCKER_HUB_PWD} | docker login -u ${DOCKER_HUB_USER} --password-stdin && docker push ${DOCKER_HUB_USER}/${DOCKER_REPOSITORY}:${TRAVIS_COMMIT} 
